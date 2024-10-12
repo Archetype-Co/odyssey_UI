@@ -4,6 +4,10 @@ Odyssey provides a variety of capabilities and tools that streamline the impleme
 
 Odyssey offers functionalities for creating NFTs, overseeing whitelists, uploading metadata, setting up NFT collections, and more, establishing itself as a valuable asset for the NFT community on Aptos blockchain.
 
+Archetype X: https://x.com/archetypecoxyz
+Odyssey X: https://x.com/odysseysdk
+Website: https://archetypeco.xyz/
+
 ## SDK Features:
 
 - Deploy NFT collections with the option for royalties
