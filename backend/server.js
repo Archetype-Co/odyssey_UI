@@ -23,9 +23,11 @@ const {
   storage,
   private_key,
   random_trait,
+  reveal_required,
 } = config;
+let { base_token_uri } = config;
 const { collection_name, description, asset_dir } = collection;
-const keyfilePath = storage.arweave.keyfilePath; // Get the keyfilePath from the storage object
+const keyfilePath = storage.arweave.key_file_path; // Get the keyfilePath from the storage object
 
 const ERR_INTERNAL_SERVER_ERROR = "Internal Server Error";
 const ERR_READING_ODYSSEY = "Error reading odyssey:";
@@ -107,11 +109,16 @@ app.get("/api/publiclist-balance/:address", async (req, res) => {
 app.get("/api/get-mint-txn/:address/:mintQty", async (req, res) => {
   const { address, mintQty } = req.params;
   try {
+    const token_uri = 
+      reveal_required && !base_token_uri
+        ? await odysseyClient.uploadNFT(0, asset_dir, keyfilePath)
+        : base_token_uri;
     const payloads = await odysseyClient.getMintToPayloads(
       address,
       resource_account,
       mintQty,
-      network
+      network,
+      token_uri,
     );
     if (payloads) {
       res.json({ payloads: payloads });
@@ -129,24 +136,28 @@ app.get(
   async (req, res) => {
     const { tokenNo, tokenAddress } = req.params;
     try {
-      const aptos = getNetwork(network);
-      const creator_account = getAccount(private_key);
-      const txn = await odysseyClient.updateMetaDataImage(
-        aptos,
-        resource_account,
-        creator_account,
-        tokenNo,
-        tokenAddress,
-        asset_dir,
-        keyfilePath,
-        random_trait,
-        collection_name,
-        description
-      );
-      if (txn) {
-        res.json({ simpleTxn: txn });
+      if (reveal_required && !base_token_uri) {
+        res.status(200).json({ simpleTxn: "" });
       } else {
-        res.json({ simpleTxn: "" });
+        const aptos = getNetwork(network);
+        const creator_account = getAccount(private_key);
+        const txn = await odysseyClient.updateMetaDataImage(
+          aptos,
+          resource_account,
+          creator_account,
+          tokenNo,
+          tokenAddress,
+          asset_dir,
+          keyfilePath,
+          random_trait,
+          collection_name,
+          description,
+        );
+        if (txn) {
+          res.json({ simpleTxn: txn });
+        } else {
+          res.json({ simpleTxn: "" });
+        }
       }
     } catch (error) {
       console.error(ERR_UPDATING_TOKEN, error.message);
