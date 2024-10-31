@@ -106,65 +106,60 @@ app.get("/api/publiclist-balance/:address", async (req, res) => {
   }
 });
 
-app.get("/api/get-mint-txn/:address/:mintQty", async (req, res) => {
-  const { address, mintQty } = req.params;
+app.get("/api/get-mint-txn/:address/:mintQty", async ({ params: { address, mintQty } }, res) => {
   try {
-    const token_uri = 
-      reveal_required && !base_token_uri
-        ? await odysseyClient.uploadNFT(0, asset_dir, keyfilePath)
-        : base_token_uri;
-    const payloads = await odysseyClient.getMintToPayloads(
-      address,
-      resource_account,
-      mintQty,
-      network,
-      token_uri,
-    );
-    if (payloads) {
-      res.json({ payloads: payloads });
-    } else {
-      res.json({ payloads: "" });
-    }
+      let token_uri = reveal_required && !base_token_uri 
+          ? await odysseyClient.uploadNFT(0, asset_dir, keyfilePath) 
+          : base_token_uri || "";
+
+      if (!base_token_uri) {
+          base_token_uri = token_uri;
+      }
+
+      const payloads = await odysseyClient.getMintToPayloads(
+          address,
+          resource_account,
+          mintQty,
+          network,
+          token_uri,
+      );
+
+      res.json({ payloads: payloads || "" });
   } catch (error) {
-    console.error(ERR_READING_MINT, error.message);
-    res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
+      console.error(ERR_READING_MINT, error.message);
+      res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
   }
 });
 
 app.get(
   "/api/update-metadata-image/:tokenNo/:tokenAddress",
-  async (req, res) => {
-    const { tokenNo, tokenAddress } = req.params;
+  async ({ params: { tokenNo, tokenAddress } }, res) => {
     try {
-      if (reveal_required && !base_token_uri) {
-        res.status(200).json({ simpleTxn: "" });
-      } else {
-        const aptos = getNetwork(network);
-        const creator_account = getAccount(private_key);
-        const txn = await odysseyClient.updateMetaDataImage(
-          aptos,
-          resource_account,
-          creator_account,
-          tokenNo,
-          tokenAddress,
-          asset_dir,
-          keyfilePath,
-          random_trait,
-          collection_name,
-          description,
-        );
-        if (txn) {
-          res.json({ simpleTxn: txn });
+        if (reveal_required) {
+            res.status(200).json({ simpleTxn: "" });
         } else {
-          res.json({ simpleTxn: "" });
+            const aptos = getNetwork(network);
+            const creator_account = getAccount(private_key);
+            const txn = await odysseyClient.updateMetaDataImage(
+                aptos,
+                resource_account,
+                creator_account,
+                tokenNo,
+                tokenAddress,
+                asset_dir,
+                keyfilePath,
+                random_trait,
+                collection_name,
+                description,
+            );
+
+            res.json({ simpleTxn: txn || "" });
         }
-      }
     } catch (error) {
-      console.error(ERR_UPDATING_TOKEN, error.message);
-      res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
+        console.error(ERR_UPDATING_TOKEN, error.message);
+        res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
     }
-  }
-);
+});
 
 app.get("/api/get-network", async (req, res) => {
   try {
