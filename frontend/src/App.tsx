@@ -168,6 +168,24 @@ function App() {
     }
   };
 
+  const addTokenAdressToFile = async (index: string, token: string) => {
+    try {
+      const response = await fetch(`${baseUrl}/api/add-nft-to-file`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token_no: index, token_address: token }), // Fixed: Convert object to JSON string
+        redirect: "follow",
+      });
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const data = await response.json();
+      console.log("Updated token metadata:", data);
+    } catch (error: any) {
+      console.error("Error updating token metadata:", error.message);
+    }
+  };
+
   const handleMint = async () => {
     if (!odyssey || loading) return; // Check if odyssey is null or if already loading, return
     try {
@@ -195,6 +213,7 @@ function App() {
               const tokenAddress = change.address;
               const tokenIndex = change.data.data.index.value;
               await updateTokenMetadataImage(tokenIndex, tokenAddress);
+              await addTokenAdressToFile(tokenIndex, tokenAddress);
               mintedToken.push(change);
             }
           }

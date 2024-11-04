@@ -12,6 +12,7 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors()); // Enable CORS for all routes
+app.use(express.json());
 
 const odysseyClient = new OdysseyClient();
 const configData = fs.readFileSync("./config.json", "utf-8"); // Read the config.json file
@@ -166,6 +167,20 @@ app.get("/api/get-network", async (req, res) => {
     res.json({ network: network });
   } catch (error) {
     console.error("Error retrieving network: ", error.message);
+    res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
+  }
+});
+
+app.post("/api/add-nft-to-file", async (req, res) => {
+  try {
+    const { token_no: tokenNo, token_address: tokenAddress } = req?.body;
+
+    console.log("Add NFT to file", tokenNo, tokenAddress);
+
+    odysseyClient.addNftToFile(tokenNo, tokenAddress);
+    res.status(200).json({ message: "Successfully added to the file." });
+  } catch (error) {
+    console.error("Error add NFT to file: ", error.message);
     res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
   }
 });
