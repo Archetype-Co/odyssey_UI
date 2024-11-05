@@ -153,24 +153,9 @@ function App() {
     return now >= startTime && now <= endTime;
   };
 
-  const updateTokenMetadataImage = async (index: string, token: string) => {
+  const updateNFTData = async (index: string, token: string) => {
     try {
-      const response = await fetch(
-        `${baseUrl}/api/update-metadata-image/${index}/${token}`
-      );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      const data = await response.json();
-      console.log("Updated token metadata:", data);
-    } catch (error: any) {
-      console.error("Error updating token metadata:", error.message);
-    }
-  };
-
-  const addTokenAdressToFile = async (index: string, token: string) => {
-    try {
-      const response = await fetch(`${baseUrl}/api/add-nft-to-file`, {
+      const response = await fetch(`${baseUrl}/api/update-nft-data`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token_no: index, token_address: token }), // Fixed: Convert object to JSON string
@@ -212,8 +197,7 @@ function App() {
               console.log(change);
               const tokenAddress = change.address;
               const tokenIndex = change.data.data.index.value;
-              await updateTokenMetadataImage(tokenIndex, tokenAddress);
-              await addTokenAdressToFile(tokenIndex, tokenAddress);
+              await updateNFTData(tokenIndex, tokenAddress);
               mintedToken.push(change);
             }
           }

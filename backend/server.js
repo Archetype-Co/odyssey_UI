@@ -132,36 +132,6 @@ app.get("/api/get-mint-txn/:address/:mintQty", async ({ params: { address, mintQ
   }
 });
 
-app.get(
-  "/api/update-metadata-image/:tokenNo/:tokenAddress",
-  async ({ params: { tokenNo, tokenAddress } }, res) => {
-    try {
-        if (reveal_required) {
-            res.status(200).json({ simpleTxn: "" });
-        } else {
-            const aptos = getNetwork(network);
-            const creator_account = getAccount(private_key);
-            const txn = await odysseyClient.updateMetaDataImage(
-                aptos,
-                resource_account,
-                creator_account,
-                tokenNo,
-                tokenAddress,
-                asset_dir,
-                keyfilePath,
-                random_trait,
-                collection_name,
-                description,
-            );
-
-            res.json({ simpleTxn: txn || "" });
-        }
-    } catch (error) {
-        console.error(ERR_UPDATING_TOKEN, error.message);
-        res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
-    }
-});
-
 app.get("/api/get-network", async (req, res) => {
   try {
     res.json({ network: network });
@@ -171,19 +141,50 @@ app.get("/api/get-network", async (req, res) => {
   }
 });
 
-app.post("/api/add-nft-to-file", async (req, res) => {
+app.post("/api/update-nft-data", async (req, res) => {
   try {
     const { token_no: tokenNo, token_address: tokenAddress } = req?.body;
+    console.log("Update NFT data", tokenNo, tokenAddress);
+    const resImage = await updateMetaDataImage(tokenNo, tokenAddress);
 
     console.log("Add NFT to file", tokenNo, tokenAddress);
 
     odysseyClient.addNftToFile(tokenNo, tokenAddress);
-    res.status(200).json({ message: "Successfully added to the file." });
+    res
+      .status(200)
+      .json({ message: "Successfully update nft data.", ...resImage });
   } catch (error) {
     console.error("Error add NFT to file: ", error.message);
     res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
   }
 });
+
+async function updateMetaDataImage(tokenNo, tokenAddress) {
+  try {
+    if (reveal_required) {
+      return { simpleTxn: "" };
+    } else {
+      const aptos = getNetwork(network);
+      const creator_account = getAccount(private_key);
+      const txn = await odysseyClient.updateMetaDataImage(
+        aptos,
+        resource_account,
+        creator_account,
+        tokenNo,
+        tokenAddress,
+        asset_dir,
+        keyfilePath,
+        random_trait,
+        collection_name,
+        description
+      );
+
+      return { simpleTxn: txn || "" };
+    }
+  } catch (error) {
+    console.error(ERR_UPDATING_TOKEN, error.message);
+  }
+}
 
 function getNetwork(network) {
   let selectedNetwork = Network.DEVNET;
