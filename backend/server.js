@@ -114,6 +114,7 @@ app.get("/api/get-mint-txn/:address/:mintQty", async ({ params: { address, mintQ
           : base_token_uri || "";
 
       if (!base_token_uri) {
+          odysseyClient.writeConfigFile({ base_token_uri: token_uri });
           base_token_uri = token_uri;
       }
 
