@@ -107,31 +107,39 @@ app.get("/api/publiclist-balance/:address", async (req, res) => {
   }
 });
 
-app.get("/api/get-mint-txn/:address/:mintQty", async ({ params: { address, mintQty } }, res) => {
-  try {
-      let token_uri = reveal_required && !base_token_uri 
-          ? await odysseyClient.uploadNFT(0, asset_dir, keyfilePath) 
-          : base_token_uri || "";
-
+app.get(
+  "/api/get-mint-txn/:address/:mintQty",
+  async ({ params: { address, mintQty } }, res) => {
+    try {
+      let token_uri = base_token_uri || "";
+      if (reveal_required && !base_token_uri) {
+        try {
+          token_uri = await odysseyClient.uploadNFT(0, asset_dir, keyfilePath);
+        } catch (error) {
+          console.error(ERR_READING_MINT, error.message);
+          return res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
+        }
+      }
       if (!base_token_uri) {
-          odysseyClient.writeConfigFile({ base_token_uri: token_uri });
-          base_token_uri = token_uri;
+        odysseyClient.writeConfigFile({ base_token_uri: token_uri });
+        base_token_uri = token_uri;
       }
 
       const payloads = await odysseyClient.getMintToPayloads(
-          address,
-          resource_account,
-          mintQty,
-          network,
-          token_uri,
+        address,
+        resource_account,
+        mintQty,
+        network,
+        token_uri
       );
 
       res.json({ payloads: payloads || "" });
-  } catch (error) {
+    } catch (error) {
       console.error(ERR_READING_MINT, error.message);
       res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
+    }
   }
-});
+);
 
 app.get("/api/get-network", async (req, res) => {
   try {
@@ -148,9 +156,7 @@ app.post("/api/update-nft-data", async (req, res) => {
     console.log("Update NFT data", tokenNo, tokenAddress);
     const resImage = await updateMetaDataImage(tokenNo, tokenAddress);
 
-    console.log("Add NFT to file", tokenNo, tokenAddress);
-
-    odysseyClient.addNftToFile(tokenNo, tokenAddress);
+    odysseyClient.writeNftDataFile(tokenNo, tokenAddress);
     res
       .status(200)
       .json({ message: "Successfully update nft data.", ...resImage });
