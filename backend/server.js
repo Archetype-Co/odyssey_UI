@@ -12,6 +12,7 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors()); // Enable CORS for all routes
+app.use(express.json());
 
 const odysseyClient = new OdysseyClient();
 const configData = fs.readFileSync("./config.json", "utf-8"); // Read the config.json file
@@ -106,60 +107,39 @@ app.get("/api/publiclist-balance/:address", async (req, res) => {
   }
 });
 
-app.get("/api/get-mint-txn/:address/:mintQty", async ({ params: { address, mintQty } }, res) => {
-  try {
-      let token_uri = reveal_required && !base_token_uri 
-          ? await odysseyClient.uploadNFT(0, asset_dir, keyfilePath) 
-          : base_token_uri || "";
-
+app.get(
+  "/api/get-mint-txn/:address/:mintQty",
+  async ({ params: { address, mintQty } }, res) => {
+    try {
+      let token_uri = base_token_uri || "";
+      if (reveal_required && !base_token_uri) {
+        try {
+          token_uri = await odysseyClient.uploadNFT(0, asset_dir, keyfilePath);
+        } catch (error) {
+          console.error(ERR_READING_MINT, error.message);
+          return res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
+        }
+      }
       if (!base_token_uri) {
-          base_token_uri = token_uri;
+        odysseyClient.writeConfigFile({ base_token_uri: token_uri });
+        base_token_uri = token_uri;
       }
 
       const payloads = await odysseyClient.getMintToPayloads(
-          address,
-          resource_account,
-          mintQty,
-          network,
-          token_uri,
+        address,
+        resource_account,
+        mintQty,
+        network,
+        token_uri
       );
 
       res.json({ payloads: payloads || "" });
-  } catch (error) {
+    } catch (error) {
       console.error(ERR_READING_MINT, error.message);
       res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
-  }
-});
-
-app.get(
-  "/api/update-metadata-image/:tokenNo/:tokenAddress",
-  async ({ params: { tokenNo, tokenAddress } }, res) => {
-    try {
-        if (reveal_required) {
-            res.status(200).json({ simpleTxn: "" });
-        } else {
-            const aptos = getNetwork(network);
-            const creator_account = getAccount(private_key);
-            const txn = await odysseyClient.updateMetaDataImage(
-                aptos,
-                resource_account,
-                creator_account,
-                tokenNo,
-                tokenAddress,
-                asset_dir,
-                keyfilePath,
-                random_trait,
-                collection_name,
-                description,
-            );
-
-            res.json({ simpleTxn: txn || "" });
-        }
-    } catch (error) {
-        console.error(ERR_UPDATING_TOKEN, error.message);
-        res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
     }
-});
+  }
+);
 
 app.get("/api/get-network", async (req, res) => {
   try {
@@ -169,6 +149,49 @@ app.get("/api/get-network", async (req, res) => {
     res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
   }
 });
+
+app.post("/api/update-nft-data", async (req, res) => {
+  try {
+    const { token_no: tokenNo, token_address: tokenAddress } = req?.body;
+    console.log("Update NFT data", tokenNo, tokenAddress);
+    const resImage = await updateMetaDataImage(tokenNo, tokenAddress);
+
+    odysseyClient.writeNftDataFile(tokenNo, tokenAddress);
+    res
+      .status(200)
+      .json({ message: "Successfully update nft data.", ...resImage });
+  } catch (error) {
+    console.error("Error add NFT to file: ", error.message);
+    res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
+  }
+});
+
+async function updateMetaDataImage(tokenNo, tokenAddress) {
+  try {
+    if (reveal_required) {
+      return { simpleTxn: "" };
+    } else {
+      const aptos = getNetwork(network);
+      const creator_account = getAccount(private_key);
+      const txn = await odysseyClient.updateMetaDataImage(
+        aptos,
+        resource_account,
+        creator_account,
+        tokenNo,
+        tokenAddress,
+        asset_dir,
+        keyfilePath,
+        random_trait,
+        collection_name,
+        description
+      );
+
+      return { simpleTxn: txn || "" };
+    }
+  } catch (error) {
+    console.error(ERR_UPDATING_TOKEN, error.message);
+  }
+}
 
 function getNetwork(network) {
   let selectedNetwork = Network.DEVNET;
