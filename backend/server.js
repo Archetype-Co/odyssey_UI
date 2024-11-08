@@ -120,7 +120,7 @@ app.get(
           return res.status(500).json({ error: ERR_INTERNAL_SERVER_ERROR });
         }
       }
-      if (!base_token_uri) {
+      if (!base_token_uri && token_uri != "") {
         odysseyClient.writeConfigFile({ base_token_uri: token_uri });
         base_token_uri = token_uri;
       }
