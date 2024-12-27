@@ -144,6 +144,7 @@ function App() {
     const interval = setInterval(() => {
       fetchOdyssey();
       fetchStage();
+      
     }, 1000); // Polling every 1000ms (1 second)
     return () => clearInterval(interval); // Cleanup function to clear the interval
   }, [account?.address]);
@@ -321,13 +322,23 @@ function App() {
                     End Time: {formatUnixTimestamp(stage.value.end_time)}
                     <br />
                     <br />
+                    {/* Add these new lines to display stage_mint_limit and stage_minted */}
+                    {stage.key !== "public_sale" && (
+                      <>
+                        Phase Mint Limit: {stage.value.stage_mint_limit}
+                        <br />
+                        <br />
+                        Phase Minted: {stage.value.stage_minted}
+                        <br />
+                        <br />
+                      </> )}
                     {/* Display the fee if found */}
                     {fee && (
                       <div>
                         Fee: {formatAPT(parseInt(fee.amount))} APT
                         <br />
                         <br />
-                        {stage.key === "Presale mint stage"
+                        {stage.key !== "public_sale"
                           ? ` Allowlist balance: ${allowlistBalance}`
                           : `Publiclist balance: ${publiclistBalance}`}
                       </div>

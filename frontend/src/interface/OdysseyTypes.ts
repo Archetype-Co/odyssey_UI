@@ -29,6 +29,8 @@ export interface Stage {
     value: {
       start_time: number;
       end_time: number;
+      stage_mint_limit: string;
+      stage_minted: string;
     };
 }
   
